@@ -3,34 +3,38 @@ import cv2
 import requests
 import numpy as np
 import os
+import ffmpeg
 
-os.system('cls')
-
-def search(songs):
+def search(song):
     """
     Searches youtube for songs, takes first result.
     """
-    urls=[]
-    for song in songs:
-        s=pytube.Search(song).results[0]
-        urls.append("https://www.youtube.com/watch?v="+str(s).split("=")[1][:-1])
 
-    return urls
+    s=pytube.Search(song).results[0]
+    url="https://www.youtube.com/watch?v="+str(s).split("=")[1][:-1]
 
-def get_video(urls):
+    return url
+
+def get_video(url):
     """
-    Downloads audio & gets thumbnail url for each video.
+    Downloads audio & gets thumbnail url.
     """
 
-    img_url=[]
-    for url in urls:
-        video=pytube.YouTube(url)
-        img_url.append(video.thumbnail_url)
-        
+    video=pytube.YouTube(url)
+    img_url=video.thumbnail_url
+    title=video.title
 
+    audio=video.streams.filter(only_audio=True)
+    bitrate=list()
+    for i,stream in enumerate(audio):
+        bitrate.append((i,int(str(stream).split(" ")[3][5:-5])))    #   Gets bitrate value from stream data
+    bitrate.sort(reverse=True,key=lambda x: x[1])   #   Sorts
+    audio=audio[bitrate[0][0]]
     
-video=pytube.YouTube('http://youtube.com/watch?v=2lAe1cqCOXo')
-img_url=video.thumbnail_url
+    audio.download()
+
+    return img_url,title
+    
 
 def img_crop(img_url):
     """
@@ -50,20 +54,30 @@ def img_crop(img_url):
 
     return crop
 
-#3x3 selections go here v
-songs=(
-    "beach house - levitation",
-    "lomelda - hannah sun",
-    "the microphones - microphones in 2020",
-    "sujian stevens - death with dignity",
-    "adrianne lenker - anything",
-    "a beacon school - fade into nylon",
-    "chris christodoulou - coelescence",
-    "club kuru - meet your maker",
-    "this is the kit - keep going"
-)
-if len(songs)!=9:
-    print("!    3x3 selection must contain 9 songs  !")
-    exit()
-urls=search(songs)
-print(urls)
+def main():
+    #3x3 selections go here v
+    songs=(
+        "beach house - levitation",
+        "lomelda - hannah sun",
+        "the microphones - microphones in 2020",
+        "sufjan stevens - death with dignity",
+        "adrianne lenker - anything",
+        "a beacon school - fade into nylon",
+        "chris christodoulou - coalescence",
+        "club kuru - meet your maker",
+        "this is the kit - keep going"
+    )
+    if len(songs)!=9:
+        print("!    3x3 selection must contain 9 songs  !")
+        exit()
+
+    urls=[]
+    for song in songs:
+        urls.append(search(song))
+
+    img_url,title=get_video(urls[0])
+
+
+if __name__=="__main__":
+    os.system('cls')
+    main()
