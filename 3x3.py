@@ -35,7 +35,7 @@ def get_video(song):
     song.title=video.title
 
     audio=video.streams.filter(only_audio=True)
-    print(audio)
+
     bitrate=list()
     for i,stream in enumerate(audio):
         bitrate.append((i,int(str(stream).split(" ")[3][5:-5])))    #   Gets bitrate value from stream data
@@ -48,6 +48,7 @@ def get_video(song):
     stream=ffmpeg.output(stream,song.title+'.mp3')
     ffmpeg.run(stream)
     os.remove(song.title+'.webm')
+    song.audio=ffmpeg.input(song.title+'.mp3')
 
 def img_crop(song):
     """
@@ -58,6 +59,7 @@ def img_crop(song):
     img=np.frombuffer(response,np.uint8)    #   Converts image to np int array (readable by opencv)
     img=cv2.imdecode(img,cv2.IMREAD_UNCHANGED)  #   Decodes image
 
+    img=cv2.imread('screenshot.png')
     center=tuple(int(z/2) for i,z in enumerate(img.shape) if i<2)   #   Gets center point 
     cx=center[1]
     cy=center[0]
@@ -66,6 +68,7 @@ def img_crop(song):
     crop=img[cy-w:cy+w,cx-w:cx+w]   #   Crops image
     scale=cv2.resize(crop,(300,300))    #   Scales image to 300x300px
     song.thumbnail=scale
+
 
 def main():
     #3x3 selections go here v
