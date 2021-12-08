@@ -42,12 +42,12 @@ def get_video(song):
     bitrate.sort(reverse=True,key=lambda x: x[1])   #   Sorts
     audio=audio[bitrate[0][0]]
     
-    audio.download()
+    audio.download()    #   Downloads stream with highest bitrate as .webm
 
-    stream=ffmpeg.input(song.title+'.webm')
-    stream=ffmpeg.output(stream,song.title+'.mp3')
-    ffmpeg.run(stream)
-    os.remove(song.title+'.webm')
+    stream=ffmpeg.input(song.title+'.webm') #   ffmpeg input file
+    stream=ffmpeg.output(stream,song.title+'.mp3')  #   ffmpeg output file
+    ffmpeg.run(stream)  
+    os.remove(song.title+'.webm')   #   Deletes original
     song.audio=ffmpeg.input(song.title+'.mp3')
 
 def img_crop(song):
