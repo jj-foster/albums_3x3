@@ -3,33 +3,39 @@ import cv2
 import requests
 import numpy as np
 import os
+import shutil
 import ffmpeg
 
-class Song(title, url, thumbnail, audio, length):
-    def __init__(self)
+class Song():
+    def __init__(self,url,title=None, thumbnail=None, thumbnail_url=None, audio=None, length=None):
+        self.title=title
+        self.url=url
+        self.thumbnail=thumbnail
+        self.thumbnail_url=thumbnail_url
+        self.audio=audio
+        self.length=length
 
-def search(song):
+def search(track):
     """
     Searches youtube for songs, takes first result.
     """
-    
-    urls=[]
-    for song in songs:
-        s=pytube.Search(song).results[0]
-        urls.append("https://www.youtube.com/watch?v="+str(s).split("=")[1][:-1])
 
-    return urls
+    s=pytube.Search(track).results[0]
+    song=Song(url="https://www.youtube.com/watch?v="+str(s).split("=")[1][:-1])
 
-def get_video(url):
+    return song
+
+def get_video(song):
     """
     Downloads audio & gets thumbnail url.
     """
 
-    video=pytube.YouTube(url)
-    img_url=video.thumbnail_url
-    title=video.title
+    video=pytube.YouTube(song.url)
+    song.thumbnail_url=video.thumbnail_url
+    song.title=video.title
 
     audio=video.streams.filter(only_audio=True)
+    print(audio)
     bitrate=list()
     for i,stream in enumerate(audio):
         bitrate.append((i,int(str(stream).split(" ")[3][5:-5])))    #   Gets bitrate value from stream data
@@ -38,15 +44,17 @@ def get_video(url):
     
     audio.download()
 
-    return img_url,title
-    
+    stream=ffmpeg.input(song.title+'.webm')
+    stream=ffmpeg.output(stream,song.title+'.mp3')
+    ffmpeg.run(stream)
+    os.remove(song.title+'.webm')
 
-def img_crop(img_url):
+def img_crop(song):
     """
     Gets image & center crops to square.
     """
 
-    response=requests.get(img_url).content
+    response=requests.get(song.thumbnail_url).content
     img=np.frombuffer(response,np.uint8)    #   Converts image to np int array (readable by opencv)
     img=cv2.imdecode(img,cv2.IMREAD_UNCHANGED)  #   Decodes image
 
@@ -56,12 +64,12 @@ def img_crop(img_url):
     w=min(center)   #   Constraining dimension
 
     crop=img[cy-w:cy+w,cx-w:cx+w]   #   Crops image
-
-    return crop
+    scale=cv2.resize(crop,(300,300))    #   Scales image to 300x300px
+    song.thumbnail=scale
 
 def main():
     #3x3 selections go here v
-    songs=(
+    tracks=(
         "beach house - levitation",
         "lomelda - hannah sun",
         "the microphones - microphones in 2020",
@@ -72,15 +80,33 @@ def main():
         "club kuru - meet your maker",
         "this is the kit - keep going"
     )
-    if len(songs)!=9:
+    if len(tracks)!=9:
         print("!    3x3 selection must contain 9 songs  !")
         exit()
 
-    urls=search(songs)
+    songs=[]
+    for track in tracks:
+        songs.append(search(track))
 
-    img_url,title=get_video(urls[0])
+    for song in songs:
+        get_video(song)
 
 
 if __name__=="__main__":
     os.system('cls')
+
+    path=os.path.abspath(os.getcwd())
+    try:
+        if os.path.isdir(path+"/temp")==True:
+            shutil.rmtree(path+"/temp")
+    except PermissionError:
+        print("!    Close all temp files    !")
+    os.mkdir(path+"/temp")
+
+    shutil.copyfile(path+'/ffmpeg.exe',path+'/temp'+'/ffmpeg.exe')
+    os.chdir(path+'/temp')
+
     main()
+
+    os.chdir(path)
+    shutil.rmtree(path+"/temp")
