@@ -59,7 +59,6 @@ def img_crop(song):
     img=np.frombuffer(response,np.uint8)    #   Converts image to np int array (readable by opencv)
     img=cv2.imdecode(img,cv2.IMREAD_UNCHANGED)  #   Decodes image
 
-    img=cv2.imread('screenshot.png')
     center=tuple(int(z/2) for i,z in enumerate(img.shape) if i<2)   #   Gets center point 
     cx=center[1]
     cy=center[0]
@@ -69,14 +68,18 @@ def img_crop(song):
     scale=cv2.resize(crop,(300,300))    #   Scales image to 300x300px
     song.thumbnail=scale
 
-def img_stack:
-    def concat_tile(im_list_2d):
-    return cv2.vconcat([cv2.hconcat(im_list_h) for im_list_h in im_list_2d])
-
-im1_s = cv2.resize(im1, dsize=(0, 0), fx=0.5, fy=0.5)
-im_tile = concat_tile([[im1_s, im1_s, im1_s, im1_s],
-                       [im1_s, im1_s, im1_s, im1_s],
-                       [im1_s, im1_s, im1_s, im1_s]])
+def img_stack(songs):
+    """
+    Stitches thumbnails in 3x3 grid.
+    """
+    img_list=[[songs[0].thumbnail,songs[1].thumbnail,songs[2].thumbnail],
+            [songs[3].thumbnail,songs[4].thumbnail,songs[5].thumbnail],
+            [songs[6].thumbnail,songs[7].thumbnail,songs[8].thumbnail]
+            ]
+        
+    img=cv2.vconcat([cv2.hconcat(row) for row in img_list]) #   Combines 
+    cv2.imshow('image',img)
+    cv2.waitKey(0)
 
 def main():
     #3x3 selections go here v
@@ -101,7 +104,9 @@ def main():
 
     for song in songs:
         get_video(song)
+        img_crop(song)
 
+    img_stack(songs)
 
 if __name__=="__main__":
     os.system('cls')
