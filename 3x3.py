@@ -5,15 +5,20 @@ import numpy as np
 import os
 import ffmpeg
 
+class Song(title, url, thumbnail, audio, length):
+    def __init__(self)
+
 def search(song):
     """
     Searches youtube for songs, takes first result.
     """
+    
+    urls=[]
+    for song in songs:
+        s=pytube.Search(song).results[0]
+        urls.append("https://www.youtube.com/watch?v="+str(s).split("=")[1][:-1])
 
-    s=pytube.Search(song).results[0]
-    url="https://www.youtube.com/watch?v="+str(s).split("=")[1][:-1]
-
-    return url
+    return urls
 
 def get_video(url):
     """
@@ -71,9 +76,7 @@ def main():
         print("!    3x3 selection must contain 9 songs  !")
         exit()
 
-    urls=[]
-    for song in songs:
-        urls.append(search(song))
+    urls=search(songs)
 
     img_url,title=get_video(urls[0])
 
