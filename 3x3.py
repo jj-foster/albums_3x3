@@ -69,6 +69,14 @@ def img_crop(song):
     scale=cv2.resize(crop,(300,300))    #   Scales image to 300x300px
     song.thumbnail=scale
 
+def img_stack:
+    def concat_tile(im_list_2d):
+    return cv2.vconcat([cv2.hconcat(im_list_h) for im_list_h in im_list_2d])
+
+im1_s = cv2.resize(im1, dsize=(0, 0), fx=0.5, fy=0.5)
+im_tile = concat_tile([[im1_s, im1_s, im1_s, im1_s],
+                       [im1_s, im1_s, im1_s, im1_s],
+                       [im1_s, im1_s, im1_s, im1_s]])
 
 def main():
     #3x3 selections go here v
