@@ -6,7 +6,7 @@ import numpy as np
 import os
 import shutil
 import ffmpeg
-from coverpy import CoverPy
+from pydub import AudioSegment
 
 class Song():
     def __init__(self,url,title,artwork=None, artwork_url=None, length=None, audio=None):
@@ -17,13 +17,15 @@ class Song():
         self.length=length
         self.audio=audio
 
-def search(album):
+####################################    Audio   ####################################
+
+def search(track):
     """
     Searches youtube for songs, takes first result.
     """
 
-    s=pytube.Search(album).results[0]
-    song=Song(url="https://www.youtube.com/watch?v="+str(s).split("=")[1][:-1],title=album)
+    s=pytube.Search(track).results[0]
+    song=Song(url="https://www.youtube.com/watch?v="+str(s).split("=")[1][:-1],title=track)
 
     return song
 
@@ -41,23 +43,36 @@ def get_audio(song):
         bitrate.append((i,int(str(stream).split(" ")[3][5:-5])))    #   Gets bitrate value from stream data
     bitrate.sort(reverse=True,key=lambda x: x[1])   #   Sorts
     audio=audio[bitrate[0][0]]
-
     audio.download(filename=song.title+'.webm')    #   Downloads stream with highest bitrate as .webm
-    audio=ffmpeg.input(song.title+'.webm',ss=int(song.length*0.25),t=10,noaccurate_seek=None)   #   sets ffmpeg input to trim 10s at 1/4 song length.
-    audio=ffmpeg.output(audio,song.title+'.mp3')
-    ffmpeg.run(audio,quiet=True)
+    
+    audio=AudioSegment.from_file(song.title+'.webm',format='webm')
+    t=int(song.length*0.25)
+    audio=audio[t*1000:t*1000+10*1000]
+    audio.export(song.title+'.mp3',format='mp3')
+    
     os.remove(song.title+'.webm')
 
-    song.audio=ffmpeg.input(song.title+'.mp3')
+    song.audio=AudioSegment.from_file(song.title+'.mp3',format='mp3')
+
+    return None
+
+####################################    Visual   ####################################
 
 def video_stitch(songs,background):
+    i=0
+    stitch=songs[0].audio
+    for i,song in enumerate(songs):  
+        stitch=stitch.append(songs[i+1].audio,crossfade=500)
+        if i+1==len(songs)-1:
+            break
+    stitch.export('stitch.mp3',format='mp3')
+    stitch=ffmpeg.input('stitch.mp3')
+    img=ffmpeg.input(background,t=90,loop=True)
+    av=ffmpeg.concat(img,stitch,v=1,a=1)
+    av=ffmpeg.output(av,'3x3.webm')
+    av.run()
 
-    stitch=ffmpeg.concat(songs[0].audio,songs[1].audio,v=1,a=1)
-    stitch=ffmpeg.concat(stitch,songs[2].audio,v=1,a=1)
-    img=ffmpeg.input(background)
-    stitch=ffmpeg.overlay(stitch,img)
-    stitch=ffmpeg.output(stitch,'3x3.webm')
-    ffmpeg.run(stitch)
+    return '3x3.webm'
 
 def img_crop(song):
     """
@@ -65,7 +80,7 @@ def img_crop(song):
     """
 
     try:
-        song.artwork_url=CoverPy().get_cover(song.title,1).artwork(300) #   Gets album art (apple music api)
+        song.artwork_url=coverpy.CoverPy().get_cover(song.title,1).artwork(300) #   Gets track art (apple music api)
         response=requests.get(song.artwork_url).content
         img=np.frombuffer(response,np.uint8)    #   Converts image to np int array (readable by opencv)
         img=cv2.imdecode(img,cv2.IMREAD_UNCHANGED)  #   Decodes image
@@ -74,6 +89,8 @@ def img_crop(song):
 
     except coverpy.exceptions.NoResultsException:
         print(f"!    No result for '{song.title}'   !") 
+
+    return None
 
 def img_stack(songs):
     """
@@ -91,48 +108,49 @@ def img_stack(songs):
     return filename
 
 def main():
-    #3x3 selections go here v
-    albums=(
-        "beach house - levitation",
-        "lomelda - hannah sun",
-        "the microphones - microphones in 2020",
-        "sufjan stevens - carrie and lowell",
-        "adrianne lenker - songs",
-        "a beacon school - cola",
-        "chris christodoulou - coalescence",
-        "club kuru - meet your maker",
-        "this is the kit - off off on"
-    )
-    if len(albums)!=9:
-        print("!    3x3 selection must contain 9 songs  !")
-        exit()
-
-    songs=[]
-    for album in albums:
-        songs.append(search(album))
-
-    for song in songs:
-        get_audio(song)
-        img_crop(song)
-        
-    background=img_stack(songs)
-    video_stitch(songs,background)
-
-if __name__=="__main__":
     os.system('cls')
     
     path=os.path.abspath(os.getcwd())
     try:
-        if os.path.isdir(path+"/temp")==True:
-            shutil.rmtree(path+"/temp")
+        if os.path.isdir(path+"/tmp")==True:
+            shutil.rmtree(path+"/tmp")
     except PermissionError:
-        print("!    Close all temp files    !")
-    os.mkdir(path+"/temp")
+        print("!    Close all tmp files    !")
+    os.mkdir(path+"/tmp")
+    os.chdir(path+'/tmp')
 
-    shutil.copyfile(path+'/ffmpeg.exe',path+'/temp'+'/ffmpeg.exe')
-    os.chdir(path+'/temp')
+    #3x3 selections go here v
+    tracks=(
+        "beach house - levitation",
+        "lomelda - hannah sun",
+        "the microphones - microphones in 2020",
+        "sufjan stevens - death with dignity",
+        "adrianne lenker - songs",
+        "a beacon school - cola",
+        "chris christodoulou - coalescence",
+        "club kuru - meet your maker",
+        "this is the kit - keep going"
+    )
+    if len(tracks)!=9:
+        print("!    3x3 selection must contain 9 songs  !")
+        exit()
 
-    main()
+    songs=[]
+    for track in tracks:
+        songs.append(search(track))
+    print("Searching for tracks complete...")
+
+    for song in songs:
+        get_audio(song)
+        img_crop(song)
+    print("Downloading & trimming tracks complete...")
+
+    background=img_stack(songs)
+    vid=video_stitch(songs,background)
+    shutil.move(f"{path}/tmp/{vid}",f"{path}/{vid}")
 
     os.chdir(path)
-    shutil.rmtree(path+"/temp")
+    shutil.rmtree(path+"/tmp")
+
+if __name__=="__main__":
+    main()
